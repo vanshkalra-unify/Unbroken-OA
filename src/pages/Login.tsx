@@ -45,7 +45,8 @@ export default function Login() {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
       navigate('/oa/demo-test-id');
-    } catch {
+    } catch (err){
+      console.log("Google sign-in error: ", err);
       toast.error('Google sign-in was cancelled or failed.');
     } finally {
       setLoading(false);
