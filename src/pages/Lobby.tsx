@@ -204,7 +204,7 @@ export default function Lobby() {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            padding: 'min(5vh, 32px) 48px',
+            padding: 'min(5vh, 56px) 48px',
           }}
         >
           <div>
@@ -249,7 +249,7 @@ export default function Lobby() {
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'center',
-            paddingTop: 'min(4.5vh, 32px)',
+            paddingTop: 'min(5vh, 48px)',
             paddingBottom: 'min(3vh, 32px)',
             paddingLeft: 'min(4vw, 48px)',
             paddingRight: 'min(4vw, 48px)',
