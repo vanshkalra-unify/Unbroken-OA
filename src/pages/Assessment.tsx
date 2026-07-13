@@ -85,12 +85,29 @@ export default function Assessment() {
 
   /* online/offline */
   useEffect(() => {
-    const on  = () => { setIsOffline(false); toast.success('Connection restored. Syncing your answers…'); };
+    const on  = async () => { 
+      setIsOffline(false); 
+      toast.success('Connection restored. Syncing your answers…'); 
+      
+      const pending = await LocalStorage.getItem('pending_offline_submission');
+      if (pending && auth.currentUser && testId) {
+        try {
+          const ref = doc(db, 'attempts', `${auth.currentUser.uid}_${testId}`);
+          await updateDoc(ref, { status: 'submitted', submittedAt: new Date() });
+          setSubmitStatus('submitted');
+          await LocalStorage.clear();
+          navigate(`/oa/${testId}`);
+        } catch {
+          // If it fails for any reason, force them out anyway since the test is over
+          navigate(`/oa/${testId}`);
+        }
+      }
+    };
     const off = () => { setIsOffline(true);  toast.warning('No internet connection. Answers are saved locally.'); };
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
-  }, []);
+  }, [navigate, testId]);
 
   /* load attempt */
   useEffect(() => {
