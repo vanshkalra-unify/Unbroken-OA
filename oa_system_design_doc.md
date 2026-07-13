@@ -16,6 +16,11 @@ This document stores the design decisions, architectural reasoning, and AI promp
 ### Syncing Strategy
 Sync on **each answer selection** (not on submit). Firebase SDK queues writes when offline and flushes on reconnection — no manual batching required.
 
+### Offline App Shell (PWA)
+**Decision**: Adopt `vite-plugin-pwa` to cache the React App Shell (HTML/CSS/JS bundles) in the browser's Cache Storage.
+- *What we are doing*: Generating and registering a Service Worker using `vite-plugin-pwa` with `registerType: 'autoUpdate'`.
+- *How we are doing it*: Configured the Vite plugin in `vite.config.ts`. The Service Worker intercepts network requests. When the internet connection is lost and the user refreshes in production, it serves the cached `index.html` and assets instantly instead of showing the browser's default offline page (the Dinosaur game). This perfectly complements Firebase Offline Persistence which handles the data layer.
+
 ### Edge Case: Accidental Tab Close
 **Decision**: Case 2 — **Direct Resume** (no re-login).
 Firebase Auth persists the session natively. On reopen, the app reads `currentIndex` from LocalForage and drops the user exactly back on the last question they were viewing. The server-side timer continues ticking naturally.
