@@ -90,17 +90,12 @@ export default function Assessment() {
       toast.success('Connection restored. Syncing your answers…'); 
       
       const pending = await LocalStorage.getItem('pending_offline_submission');
-      if (pending && auth.currentUser && testId) {
-        try {
-          const ref = doc(db, 'attempts', `${auth.currentUser.uid}_${testId}`);
-          await updateDoc(ref, { status: 'submitted', submittedAt: new Date() });
-          setSubmitStatus('submitted');
-          await LocalStorage.clear();
-          navigate(`/oa/${testId}`);
-        } catch {
-          // If it fails for any reason, force them out anyway since the test is over
-          navigate(`/oa/${testId}`);
-        }
+      if (pending && testId) {
+        // Firebase native offline persistence is already flushing the queue in the background.
+        // We do not need to wait for a promise. Just instantly clear the lock and navigate them out!
+        setSubmitStatus('submitted');
+        await LocalStorage.clear();
+        navigate(`/oa/${testId}`);
       }
     };
     const off = () => { setIsOffline(true);  toast.warning('No internet connection. Answers are saved locally.'); };
