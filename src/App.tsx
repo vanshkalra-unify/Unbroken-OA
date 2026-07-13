@@ -3,10 +3,8 @@ import Login from './pages/Login';
 import Lobby from './pages/Lobby';
 import Assessment from './pages/Assessment';
 import { useEffect, useState } from 'react';
-import { auth, db } from './lib/firebase';
+import { auth } from './lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { LocalStorage } from './lib/storage';
-import { doc, updateDoc } from 'firebase/firestore';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'sonner';
 
