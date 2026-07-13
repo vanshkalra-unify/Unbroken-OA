@@ -13,8 +13,9 @@ type LobbyStatus = 'loading' | 'invalid' | 'ready';
 export default function Lobby() {
   const { testId } = useParams();
   const navigate = useNavigate();
-  const [lobbyStatus, setLobbyStatus] = useState<LobbyStatus>('loading');
+  const [lobbyStatus, setLobbyStatus] = useState<'loading' | 'ready' | 'invalid'>('loading');
   const [starting, setStarting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const user = auth.currentUser;
 
   /* ── Validate test ID against Firestore `assessments` collection ── */
@@ -41,8 +42,21 @@ export default function Lobby() {
             setLobbyStatus('ready');
           } else {
             setLobbyStatus('invalid');
+            return;
           }
         }
+        
+        // If assessment is valid, check if they already submitted it
+        try {
+          const attemptRef = doc(db, 'attempts', `${user?.uid}_${testId}`);
+          const attemptSnap = await getDoc(attemptRef);
+          if (attemptSnap.exists() && attemptSnap.data().status === 'submitted') {
+            setIsSubmitted(true);
+          }
+        } catch {
+          // ignore permission errors if it doesn't exist
+        }
+        
       } catch {
         // Offline: if we can't verify, allow if user already has an in-progress attempt
         try {
@@ -286,9 +300,15 @@ export default function Lobby() {
 
             {/* CTA */}
             <div style={{ padding: 'min(2.5vh, 24px) 36px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={handleStart} disabled={starting} className="btn btn-accent" style={{ padding: '10px 32px', fontSize: 15 }}>
-                {starting ? <><Spinner /> Starting…</> : 'Start Assessment'}
-              </button>
+              {isSubmitted ? (
+                <button disabled className="btn" style={{ padding: '10px 32px', fontSize: 15, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
+                  Assessment Completed
+                </button>
+              ) : (
+                <button onClick={handleStart} disabled={starting} className="btn btn-accent" style={{ padding: '10px 32px', fontSize: 15 }}>
+                  {starting ? <><Spinner /> Starting…</> : 'Start Assessment'}
+                </button>
+              )}
             </div>
           </div>
         </motion.div>

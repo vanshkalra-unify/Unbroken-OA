@@ -90,13 +90,22 @@ export default function Assessment() {
       toast.success('Connection restored. Syncing your answers…'); 
       
       const pending = await LocalStorage.getItem('pending_offline_submission');
-      if (pending && testId) {
-        // Firebase native offline persistence is already flushing the queue in the background.
-        // We do not need to wait for a promise. Just instantly clear the lock and navigate them out!
-        setSubmitStatus('submitted');
-        await LocalStorage.clear();
-        toast.success('Assessment successfully synced and submitted!');
-        navigate(`/oa/${testId}`);
+      if (pending && auth.currentUser && testId) {
+        try {
+          // We MUST wait for this promise. It forces React to wait until Firebase has successfully
+          // flushed its offline queue to the server. Without this, we navigate to the Lobby too quickly,
+          // and the Lobby fetches the old 'in-progress' state from the server.
+          const ref = doc(db, 'attempts', `${auth.currentUser.uid}_${testId}`);
+          await updateDoc(ref, { status: 'submitted', submittedAt: new Date() });
+          
+          setSubmitStatus('submitted');
+          await LocalStorage.clear();
+          toast.success('Assessment successfully synced and submitted!');
+          navigate(`/oa/${testId}`);
+        } catch {
+          await LocalStorage.clear();
+          navigate(`/oa/${testId}`);
+        }
       }
     };
     const off = () => { setIsOffline(true);  toast.warning('No internet connection. Answers are saved locally.'); };
@@ -234,13 +243,15 @@ export default function Assessment() {
 
   const answeredCount = Object.values(answers).filter(a => Array.isArray(a) ? a.length > 0 : !!a).length;
 
-  if (loading) return (
+  if (loading || (attemptData && attemptData.status === 'submitted')) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-base)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading assessment…</span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {attemptData?.status === 'submitted' ? 'Redirecting to Lobby…' : 'Loading assessment…'}
+        </span>
       </div>
     </div>
   );
