@@ -40,7 +40,7 @@ export default function Lobby() {
         testId: testId,
         status: 'in-progress',
         startTime: serverTimestamp(), // Secure server time
-        durationMinutes: 30, // example duration
+        durationMinutes: 2, // example duration
         questions: selectedQuestions.map(q => q.id),
         answers: {},
         tabViolations: 0
@@ -69,7 +69,7 @@ export default function Lobby() {
           <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
             <h3 className="text-xl font-semibold text-white mb-4">Instructions</h3>
             <ul className="list-disc pl-5 space-y-2">
-              <li>You will have <strong>30 minutes</strong> to complete 5 questions.</li>
+              <li>You will have <strong>2 minutes</strong> to complete 5 questions.</li>
               <li>The timer will not pause if you close or refresh the tab.</li>
               <li>Once the timer reaches zero, your answers will be automatically submitted.</li>
               <li>Do not switch tabs or minimize the window. We monitor tab switches and log violations.</li>

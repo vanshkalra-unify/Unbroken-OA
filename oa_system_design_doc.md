@@ -19,7 +19,27 @@ This document stores the design decisions, architectural reasoning, and AI promp
 **Answer**: **Sync on each answer**. 
 - Waiting until submission risks massive data loss if the browser crashes or clears cache. 
 - By syncing on each answer, Firebase queues the writes. If offline, they are saved locally. 
-- *Edge Case (Offline Submission)*: If the user submits while offline, we set a `submit_pending` flag locally. The UI shows a reassuring message ("You are offline, answers saved. Reconnecting..."). We listen to the `online` event to push the final submission.
+
+### Edge Case: Accidental Tab Close during Test
+**Question**: If a user accidentally closes the tab during a test, should we force them to login again (Case 1) or directly restore them to the last question they were on (Case 2)?
+**Answer**: **Case 2 (Directly Restore State)**.
+- Forcing a re-login during a timed, stressful test adds unnecessary friction and wastes valuable seconds. 
+- Because Firebase Auth persists the session natively in the browser, we can detect the returning user instantly. 
+- We track the `currentIndex` (last question viewed) in IndexedDB. When they reopen the tab, the app detects the in-progress attempt, reads the local cache, and drops them exactly back where they were. The timer naturally reflects the elapsed time server-side.
+
+### Edge Case: Offline Submission Recovery
+**Question**: If a user submits while offline, closes the tab, and reopens it later when online, how do we handle it?
+**Answer**: 
+- When they submit offline, we write a `pending_offline_submission = true` flag to IndexedDB.
+- On the next app launch (when online), a global listener intercepts this flag. It pushes the final answers to Firestore and displays a custom success message: *"We noticed you completed the assessment while offline earlier. Your connection has been restored, and your test was successfully submitted to our servers just now."* This clearly differentiates it from a standard "Already submitted" error and validates the user's offline efforts.
+
+### Malicious Cheating Analysis (Offline Mode Exploits)
+**Question**: Could a user exploit the offline mode or tab-close recovery to cheat?
+**Answer**: 
+1. **Exploit: Time Freezing.** User turns off WiFi, takes 3 hours to solve, turns WiFi back on to trigger the "offline recovery submit". 
+   - *Mitigation*: The `startTime` is securely recorded in Firestore when the test begins. When the offline submission eventually syncs to the backend, Firebase attaches a `serverTimestamp()`. The backend (via Firestore Security Rules) verifies that the `serverTimestamp()` of the submission minus `startTime` does not exceed the allowed duration. If they try to submit 3 hours late, the database rejects the write entirely, and their attempt is invalidated.
+2. **Exploit: Clearing Tab Violations.** User turns off WiFi, switches tabs to Google answers, then clears browser cache/IndexedDB before turning WiFi back on to wipe the local `tabViolations` count.
+   - *Mitigation*: If they clear their IndexedDB, they also wipe their cached `answers` and `pending_offline_submission` flag. They would lose all their progress. 
 
 ### Timer & Security (Anti-Cheating)
 **Question**: How to make the app secure and handle the timer robustly?

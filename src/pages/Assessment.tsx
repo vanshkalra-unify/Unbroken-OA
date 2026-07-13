@@ -46,25 +46,30 @@ export default function Assessment() {
           setAttemptData(data);
           
           // Load answers from local or DB
-          const localAnswers = await LocalStorage.getItem('answers') || {};
-          setAnswers({ ...data.answers, ...localAnswers });
+          const localAnswers = (await LocalStorage.getItem('answers')) as Record<string, string | string[]> || {};
+          setAnswers({ ...(data.answers as Record<string, string | string[]>), ...localAnswers });
           
-          // Try to load cached questions
+          // Try to load cached questions and index
           const cachedQ = await LocalStorage.getItem('current_questions');
           if (cachedQ) setQuestions(cachedQ as Question[]);
+          const savedIndex = await LocalStorage.getItem('current_index');
+          if (savedIndex !== null) setCurrentIndex(savedIndex as number);
         }
       } catch (err) {
         console.error("Error loading attempt (might be offline):", err);
         // Fallback to local storage if totally offline and cache exists
         const cachedQ = await LocalStorage.getItem('current_questions');
         const localAnswers = await LocalStorage.getItem('answers') || {};
+        const savedIndex = await LocalStorage.getItem('current_index');
+        
         if (cachedQ) {
           setQuestions(cachedQ as Question[]);
           setAnswers(localAnswers as Record<string, string | string[]>);
+          if (savedIndex !== null) setCurrentIndex(savedIndex as number);
           // We need a dummy attemptData to show the timer
           setAttemptData({
             startTime: { toDate: () => new Date() }, // fallback
-            durationMinutes: 30
+            durationMinutes: 2
           });
         }
       } finally {
@@ -73,6 +78,11 @@ export default function Assessment() {
     };
     init();
   }, [testId, navigate]);
+
+  // Save currentIndex to localForage on change
+  useEffect(() => {
+    LocalStorage.setItem('current_index', currentIndex);
+  }, [currentIndex]);
 
   // Anti-cheating listeners
   useEffect(() => {
@@ -116,11 +126,14 @@ export default function Assessment() {
     }
   }, [isOffline, submitStatus]);
 
-  const handleAnswerSelect = async (questionId: string, option: string, isMulti: boolean) => {
+  const handleAnswerSelect = async (questionId: string, option: string, isMulti: boolean, isClear: boolean = false) => {
     setAnswers(prev => {
       const current = prev[questionId];
       let newAns;
-      if (isMulti) {
+      
+      if (isClear) {
+        newAns = isMulti ? [] : '';
+      } else if (isMulti) {
         const arr = Array.isArray(current) ? current : [];
         if (arr.includes(option)) {
           newAns = arr.filter(o => o !== option);
@@ -151,7 +164,11 @@ export default function Assessment() {
     setSubmitStatus('pending');
     
     if (isOffline) {
-      alert("You are offline. Your answers are saved securely. Do not close this tab; it will submit automatically when the connection is restored.");
+      LocalStorage.setItem('pending_offline_submission', {
+        testId,
+        answers
+      });
+      alert("You are offline. Your answers are saved securely. Do not close this tab; it will submit automatically when the connection is restored. If you accidentally close it, it will sync next time you open the app online.");
       return;
     }
 
@@ -196,7 +213,7 @@ export default function Assessment() {
         {attemptData?.startTime && (
           <Timer 
             startTime={attemptData.startTime.toDate ? attemptData.startTime.toDate() : new Date()} 
-            durationMinutes={attemptData.durationMinutes || 30} 
+            durationMinutes={attemptData.durationMinutes || 2} 
             onExpire={handleFinalSubmit} 
           />
         )}
@@ -273,7 +290,16 @@ export default function Assessment() {
               })}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-700/50 flex justify-between">
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => handleAnswerSelect(currentQ.id, '', currentQ.type === 'multiselect', true)}
+                className="text-sm font-medium text-slate-400 hover:text-white underline transition-colors"
+              >
+                Clear Selection
+              </button>
+            </div>
+
+            <div className="mt-4 pt-6 border-t border-slate-700/50 flex justify-between">
               <button 
                 onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
                 disabled={currentIndex === 0}
