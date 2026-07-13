@@ -95,6 +95,7 @@ export default function Assessment() {
         // We do not need to wait for a promise. Just instantly clear the lock and navigate them out!
         setSubmitStatus('submitted');
         await LocalStorage.clear();
+        toast.success('Assessment successfully synced and submitted!');
         navigate(`/oa/${testId}`);
       }
     };
