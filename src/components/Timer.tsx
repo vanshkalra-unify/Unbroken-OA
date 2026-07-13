@@ -6,6 +6,7 @@ interface TimerProps {
   onExpire: () => void;
 }
 
+// Timer func
 export default function Timer({ startTime, durationMinutes, onExpire }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(0);
 
