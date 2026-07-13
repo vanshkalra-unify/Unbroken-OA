@@ -1,36 +1,263 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-@theme {
-  --color-background: #0f172a;
-  --color-foreground: #f8fafc;
-  --color-primary: #3b82f6;
-  --color-secondary: #1e293b;
-  --color-accent: #10b981;
+/* ================================================
+   HACKOFF — Design Tokens
+   ================================================ */
+
+:root, [data-theme="dark"] {
+  --bg-base:        #0d1117;
+  --bg-surface:     #161b22;
+  --bg-elevated:    #1c2333;
+  --bg-overlay:     #21262d;
+  --bg-input:       #0d1117;
+
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted:     #484f58;
+  --text-link:      #a78bfa;
+
+  --border-subtle:  #21262d;
+  --border-default: #30363d;
+  --border-strong:  #484f58;
+
+  /* Purple accent */
+  --accent:         #8b5cf6;
+  --accent-hover:   #7c3aed;
+  --accent-subtle:  rgba(139,92,246,0.12);
+  --accent-fg:      #fff;
+
+  --accent-blue:    #58a6ff;
+  --accent-blue-subtle: rgba(88,166,255,0.1);
+  --accent-orange:  #f0883e;
+  --accent-red:     #f85149;
+  --accent-red-subtle: rgba(248,81,73,0.1);
+  --accent-green:   #3fb950;
+
+  --shadow-sm:   0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
+}
+
+[data-theme="light"] {
+  --bg-base:        #f6f8fa;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f6f8fa;
+  --bg-overlay:     #eaeef2;
+  --bg-input:       #ffffff;
+
+  --text-primary:   #1c2128;
+  --text-secondary: #57606a;
+  --text-muted:     #8c959f;
+  --text-link:      #6d28d9;
+
+  --border-subtle:  #eaeef2;
+  --border-default: #d0d7de;
+  --border-strong:  #afb8c1;
+
+  /* Purple accent */
+  --accent:         #7c3aed;
+  --accent-hover:   #6d28d9;
+  --accent-subtle:  rgba(124,58,237,0.08);
+  --accent-fg:      #fff;
+
+  --accent-blue:    #0969da;
+  --accent-blue-subtle: rgba(9,105,218,0.08);
+  --accent-orange:  #bc4c00;
+  --accent-red:     #cf222e;
+  --accent-red-subtle: rgba(207,34,46,0.08);
+  --accent-green:   #1a7f37;
+
+  --shadow-sm:   0 1px 2px rgba(31,35,40,0.08);
+  --shadow-md:   0 4px 12px rgba(31,35,40,0.1);
+  --shadow-lg:   0 8px 32px rgba(31,35,40,0.12);
+}
+
+/* ================================================
+   BASE
+   ================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  @apply bg-background text-foreground antialiased selection:bg-primary/30;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-@utility glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
+.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-@utility glass-card {
-  @apply glass rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+/* ================================================
+   SURFACES
+   ================================================ */
+.surface {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.surface-overlay {
+  background-color: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
 }
-::-webkit-scrollbar-track {
+
+/* ================================================
+   FORM ELEMENTS
+   ================================================ */
+.input {
+  display: block;
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.input::placeholder { color: var(--text-muted); }
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* ================================================
+   BUTTONS
+   ================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+
+.btn-accent {
+  background-color: var(--accent);
+  color: var(--accent-fg);
+  padding: 8px 20px;
+}
+.btn-accent:hover:not(:disabled) { background-color: var(--accent-hover); }
+
+.btn-secondary {
+  background-color: var(--bg-overlay);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  padding: 7px 18px;
+}
+.btn-secondary:hover:not(:disabled) { background-color: var(--bg-elevated); border-color: var(--border-strong); }
+
+.btn-ghost {
   background: transparent;
+  color: var(--text-secondary);
+  padding: 7px 14px;
+  border: 1px solid var(--border-default);
 }
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+.btn-ghost:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); background-color: var(--border-subtle); }
+
+/* ================================================
+   DIVIDER
+   ================================================ */
+.divider {
+  height: 1px;
+  background-color: var(--border-default);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+
+/* ================================================
+   SCROLLBAR
+   ================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ================================================
+   SELECTION
+   ================================================ */
+::selection { background-color: var(--accent-subtle); color: var(--accent); }
+
+/* ================================================
+   FOCUS RING
+   ================================================ */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ================================================
+   SPINNER ANIMATION
+   ================================================ */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
+.animate-spin { animation: spin 0.9s linear infinite; }
+
+/* ================================================
+   RESPONSIVE UTILITIES
+   ================================================ */
+
+/* Login: hide left panel on small screens */
+@media (max-width: 860px) {
+  .login-left-panel { display: none !important; }
+}
+
+/* Lobby: stack two-column layout on mobile */
+@media (max-width: 768px) {
+  .lobby-body {
+    flex-direction: column !important;
+  }
+  .lobby-left {
+    width: 100% !important;
+    padding: 24px 20px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-default);
+  }
+  .lobby-right {
+    padding: 20px 16px !important;
+  }
+}
+
+/* Assessment: hide sidebar on mobile, show mobile header */
+@media (max-width: 768px) {
+  .assessment-sidebar { display: none !important; }
+  .assessment-mobile-bar { display: flex !important; }
+  .assessment-main { padding: 20px 16px !important; }
+}
+@media (min-width: 769px) {
+  .assessment-mobile-bar { display: none !important; }
+}
+
+/* Assessment: question options fill width on all screens */
+.question-content {
+  width: 100%;
+  max-width: 780px;
+}
+
+/* Login mobile wordmark: hidden on desktop, shown on mobile */
+.login-mobile-wordmark { display: none; }
+@media (max-width: 860px) {
+  .login-left-panel { display: none !important; }
+  .login-mobile-wordmark { display: block; }
+}
+

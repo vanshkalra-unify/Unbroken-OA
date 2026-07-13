@@ -1,42 +1,75 @@
 import { useEffect, useState } from 'react';
-export default function Timer({ startTime, durationMinutes, onExpire }: { startTime: Date, durationMinutes: number, onExpire: () => void }) {
-  const [timeLeft, setTimeLeft] = useState<number>(0);
+
+interface TimerProps {
+  startTime: Date;
+  durationMinutes: number;
+  onExpire: () => void;
+}
+
+export default function Timer({ startTime, durationMinutes, onExpire }: TimerProps) {
+  const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    // Calculate end time based on the server's startTime plus duration
-    const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
-    
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const difference = endTime.getTime() - now.getTime();
-      return Math.max(0, Math.floor(difference / 1000));
-    };
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60_000);
+    const calc = () => Math.max(0, Math.floor((endTime.getTime() - Date.now()) / 1000));
 
-    setTimeLeft(calculateTimeLeft());
+    setTimeLeft(calc());
 
-    const timer = setInterval(() => {
-      const remaining = calculateTimeLeft();
-      setTimeLeft(remaining);
-      if (remaining <= 0) {
-        clearInterval(timer);
-        onExpire();
-      }
+    const id = setInterval(() => {
+      const rem = calc();
+      setTimeLeft(rem);
+      if (rem <= 0) { clearInterval(id); onExpire(); }
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => clearInterval(id);
   }, [startTime, durationMinutes, onExpire]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+  const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const ss = String(timeLeft % 60).padStart(2, '0');
 
-  const isWarning = timeLeft < 300; // Less than 5 minutes
+  const total = durationMinutes * 60;
+  const pct = total > 0 ? timeLeft / total : 0;
+  const isDanger = timeLeft <= 30;
+  const isWarn   = timeLeft <= 60 && !isDanger;
+
+  const color = isDanger ? 'var(--accent-red)' : isWarn ? 'var(--accent-orange)' : 'var(--text-secondary)';
+  const r = 14;
+  const circ = 2 * Math.PI * r;
 
   return (
-    <div className={`font-mono text-xl font-bold px-4 py-2 rounded-lg border ${isWarning ? 'bg-red-500/10 border-red-500/50 text-red-400 animate-pulse' : 'bg-slate-800/50 border-slate-700 text-primary'}`}>
-      {formatTime(timeLeft)}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* SVG ring */}
+      <svg width={36} height={36} viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+        <circle cx="18" cy="18" r={r} fill="none" stroke="var(--border-default)" strokeWidth="2.5" />
+        <circle
+          cx="18" cy="18" r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct)}
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.4s ease' }}
+        />
+      </svg>
+
+      {/* Numeric */}
+      <div>
+        <div
+          className="font-mono"
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            lineHeight: 1,
+            color,
+            letterSpacing: '0.02em',
+            transition: 'color 0.4s ease',
+          }}
+        >
+          {mm}:{ss}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>remaining</div>
+      </div>
     </div>
   );
 }

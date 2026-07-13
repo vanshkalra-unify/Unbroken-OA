@@ -1,65 +1,86 @@
 # Online Assessment (OA) System Design & Developer Prompts
 
-This document stores the design decisions, architectural reasoning, and AI prompts/answers for building the HackerRank-style Online Assessment app. It acts as a reference for your dev journey.
+This document stores the design decisions, architectural reasoning, and AI prompts/answers for building the HackerRank-style Online Assessment app.
 
-## 1. Initial Prompt from Developer
-**Goal**: Build an Online Assessment web app with timed environments, various question types, robust offline support, Firebase backend, and secure execution.
+---
 
-## 2. Core Architecture Decisions
+## 1. Core Architecture Decisions
 
 ### Storage & Offline Capabilities
-**Question**: Which browser storage is best for an OA app (IndexedDB, LocalStorage, Cache API)?
-**Answer**: A **Hybrid approach** utilizing **Firebase's built-in IndexedDB persistence** alongside **LocalForage** is best. 
-- *Why not LocalStorage?* It has a 5MB limit, is synchronous (blocking the main thread causing UI stutters), and only stores strings.
-- *Why Firebase Offline Persistence?* It automatically caches fetched data in IndexedDB and queues outgoing writes. If the user answers while offline, the Firebase SDK queues the write and syncs it when the connection is restored, without custom complex sync logic.
-- *Why LocalForage?* For tracking exact UI state (timer offset, selected question index) to survive hard-refreshes while offline.
+**Decision**: Hybrid approach — **Firebase Offline Persistence** (IndexedDB via Firestore SDK) + **LocalForage** for UI state (currentIndex, draft answers, pending submission flag).
+
+- *Why not LocalStorage?* 5MB limit, synchronous/blocking, strings only.
+- *Why Firebase Offline Persistence?* Automatically queues writes; syncs on reconnect without custom logic.
+- *Why LocalForage?* Tracks exact UI state (timer offset, last question, pending submission) for hard-refresh / tab-close recovery.
 
 ### Syncing Strategy
-**Question**: Should answers be saved in browser storage and synced on submit, or synced on each answer?
-**Answer**: **Sync on each answer**. 
-- Waiting until submission risks massive data loss if the browser crashes or clears cache. 
-- By syncing on each answer, Firebase queues the writes. If offline, they are saved locally. 
+Sync on **each answer selection** (not on submit). Firebase SDK queues writes when offline and flushes on reconnection — no manual batching required.
 
-### Edge Case: Accidental Tab Close during Test
-**Question**: If a user accidentally closes the tab during a test, should we force them to login again (Case 1) or directly restore them to the last question they were on (Case 2)?
-**Answer**: **Case 2 (Directly Restore State)**.
-- Forcing a re-login during a timed, stressful test adds unnecessary friction and wastes valuable seconds. 
-- Because Firebase Auth persists the session natively in the browser, we can detect the returning user instantly. 
-- We track the `currentIndex` (last question viewed) in IndexedDB. When they reopen the tab, the app detects the in-progress attempt, reads the local cache, and drops them exactly back where they were. The timer naturally reflects the elapsed time server-side.
+### Edge Case: Accidental Tab Close
+**Decision**: Case 2 — **Direct Resume** (no re-login).
+Firebase Auth persists the session natively. On reopen, the app reads `currentIndex` from LocalForage and drops the user exactly back on the last question they were viewing. The server-side timer continues ticking naturally.
 
 ### Edge Case: Offline Submission Recovery
-**Question**: If a user submits while offline, closes the tab, and reopens it later when online, how do we handle it?
-**Answer**: 
-- When they submit offline, we write a `pending_offline_submission = true` flag to IndexedDB.
-- On the next app launch (when online), a global listener intercepts this flag. It pushes the final answers to Firestore and displays a custom success message: *"We noticed you completed the assessment while offline earlier. Your connection has been restored, and your test was successfully submitted to our servers just now."* This clearly differentiates it from a standard "Already submitted" error and validates the user's offline efforts.
+When a user submits offline, a `pending_offline_submission` flag is saved to LocalForage. On next app launch (online), `App.tsx` runs a recovery check on startup. If found, it pushes the final answers to Firestore and shows a styled recovery message with proper padding instead of a plain alert.
 
 ### Malicious Cheating Analysis (Offline Mode Exploits)
-**Question**: Could a user exploit the offline mode or tab-close recovery to cheat?
-**Answer**: 
-1. **Exploit: Time Freezing.** User turns off WiFi, takes 3 hours to solve, turns WiFi back on to trigger the "offline recovery submit". 
-   - *Mitigation*: The `startTime` is securely recorded in Firestore when the test begins. When the offline submission eventually syncs to the backend, Firebase attaches a `serverTimestamp()`. The backend (via Firestore Security Rules) verifies that the `serverTimestamp()` of the submission minus `startTime` does not exceed the allowed duration. If they try to submit 3 hours late, the database rejects the write entirely, and their attempt is invalidated.
-2. **Exploit: Clearing Tab Violations.** User turns off WiFi, switches tabs to Google answers, then clears browser cache/IndexedDB before turning WiFi back on to wipe the local `tabViolations` count.
-   - *Mitigation*: If they clear their IndexedDB, they also wipe their cached `answers` and `pending_offline_submission` flag. They would lose all their progress. 
+1. **Time Freezing**: User goes offline, takes hours to answer, comes back online. → *Mitigation*: The `submittedAt` server timestamp is compared against `startTime + durationMinutes` by Firestore Security Rules. Late submissions are rejected.
+2. **Clearing Cache to wipe tab violations**: User clears IndexedDB to remove `tabViolations`. → *Mitigation*: Wiping IndexedDB also erases their cached answers and `pending_offline_submission` flag, destroying their own progress.
 
-### Timer & Security (Anti-Cheating)
-**Question**: How to make the app secure and handle the timer robustly?
-**Answer**:
-1. **Server-Side Timer**: Never trust the client clock. Record `startTime` in Firestore using a server timestamp. The client fetches this and calculates `endTime = startTime + allowed_duration`.
-2. **Clock Skew Correction**: Calculate the difference between the user's local clock and the server clock to prevent users from manually changing their system time to get more time.
-3. **Database Rules**: Use Firestore Security Rules to reject any answer payloads where the current server time is greater than the `endTime`.
-4. **Environment Constraints**: 
-   - Block right-click, copy, and paste.
-   - Use the `Visibility API` to detect when the user switches tabs or minimizes the window, and log these violations.
-   - Enforce Full-Screen mode during the test.
+---
 
-## 3. Data Model (Firestore)
+## 2. Security: Test ID Validation (URL Manipulation Attack)
 
-- **`assessments`**: Stores OA configs (e.g., `id`, `title`, `durationMinutes`, `numberOfQuestions`).
-- **`questions`**: The question bank (`id`, `type: mcq|multiselect|tf`, `text`, `options`, `correctAnswer`).
-- **`attempts`**: The user's specific run (`id`, `userId`, `assessmentId`, `startTime`, `status`, `answers: map`, `tabSwitches: int`). Note: `correctAnswer` is NEVER sent to the client.
+### Problem
+Without validation, any user can craft an arbitrary URL like `/oa/any-made-up-id` and start a brand new test attempt with that ID. This is a significant security hole in production.
 
-## 4. Tech Stack Summary
-- **Frontend**: React.js via Vite.
-- **Styling**: Tailwind CSS (Dark/Light mode, modern glassmorphism UI).
-- **Backend/DB**: Firebase Authentication, Cloud Firestore.
-- **Hosting**: Firebase Hosting.
+### Options Considered
+- **Option A — Client-side allowlist**: Hardcode valid test IDs in `.env`. Simple but leaks IDs, requires redeployment for new tests.
+- **Option B — Firestore `assessments` collection check**: On Lobby mount, verify the `testId` exists in `assessments/{testId}` before allowing the user to start. This is the correct production pattern.
+
+### Decision: Option B (Firestore Verification)
+**Implementation**: In `Lobby.tsx`, a `useEffect` runs on mount. It fetches `assessments/{testId}`. If the document doesn't exist, it sets an error state (`'invalid'`) and shows a "This assessment link is invalid." screen. If it exists, the Lobby renders normally.
+
+**Demo Workaround**: A seed document `assessments/demo-test-id` is created in Firestore (via the Lobby itself, as a one-time creation if missing). This avoids requiring manual Firestore setup for the demo. In production, assessment documents would be created by administrators.
+
+---
+
+## 3. UI & Layout Design Decisions
+
+### Theme
+- **Brand name**: HackOff
+- **Dark mode palette**: Deep navy/GitHub-style (`#0d1117` base, `#161b22` surface)
+- **Accent color**: Purple (`#8b5cf6` in dark, `#7c3aed` in light) — changed from green to differentiate the brand while remaining professional.
+- **Typography**: Inter (Google Fonts) for UI, JetBrains Mono for the timer.
+
+### Responsive Strategy
+- **Login**: Left branding panel hidden below 900px; form takes full width.
+- **Lobby**: Two-column layout stacks vertically below 768px.
+- **Assessment**: Sidebar collapses entirely on mobile. A top progress bar replaces it. Questions fill the full width with horizontal padding.
+- **Breakpoints** managed via CSS media queries embedded in `index.css`.
+
+### Assessment Layout
+- The question pane uses `max-width: 800px` with `margin: 0 auto` to feel centered on large screens without leaving excessive whitespace.
+- Options expand to fill the available width of the question card.
+- Navigation (Prev/Next) and "Clear selection" are always pinned to the bottom of the content area.
+
+---
+
+## 4. Bug Fixes & Edge Case Hardening
+
+### Bugs Fixed
+1. **Inline `document.head.appendChild` in `Login.tsx`**: This ran as a module-level side effect on every import, potentially creating duplicate `<style>` tags. **Fix**: Moved responsive CSS into `index.css` media queries.
+2. **App loading spinner used old Tailwind class names** that no longer exist after CSS token migration. **Fix**: Replaced with inline-styled spinner matching the new design system.
+3. **Double-submission**: The submit button is disabled immediately when `submitStatus` changes from `'idle'`, preventing double-clicks. No change needed.
+4. **Firebase Auth session persistence on recovery**: The `pending_offline_submission` object in LocalForage contains `testId` but not `userId`. If a different user logs in on the same device, the recovery would push to the wrong user's Firestore document. **Fix**: The recovery check in `App.tsx` now also validates that `user.uid` matches the `userId` stored alongside the pending submission. Added `userId` to the stored object in `Assessment.tsx`.
+5. **Firestore Security Rules**: `submittedAt` timestamp should be validated server-side to prevent late offline submissions. (Documented here; Firestore rules to be updated in production.)
+
+---
+
+## 5. Tech Stack Summary
+- **Frontend**: React + Vite, TypeScript
+- **Styling**: Vanilla CSS (CSS custom properties), Inter + JetBrains Mono fonts
+- **Animations**: Framer Motion
+- **Toasts**: Sonner
+- **Backend/DB**: Firebase Authentication + Cloud Firestore (offline persistence enabled)
+- **Hosting**: Firebase Hosting
