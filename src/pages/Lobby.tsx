@@ -154,14 +154,15 @@ export default function Lobby() {
 
   /* ── Main Lobby ── */
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
+    <div className="bg-grid" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
 
       {/* Header */}
-      <header style={{
-        height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', backgroundColor: 'var(--bg-surface)',
+      <header className="glass-panel" style={{
+        height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 32px',
         borderBottom: '1px solid var(--border-default)',
         position: 'sticky', top: 0, zIndex: 40, flexShrink: 0,
+        backgroundColor: 'var(--glass-bg)',
       }}>
         <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
           Hack<span style={{ color: 'var(--accent)' }}>Off</span>
@@ -184,23 +185,22 @@ export default function Lobby() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            width: 320,
+            width: 360,
             flexShrink: 0,
-            padding: '48px 36px',
+            padding: 'min(5vh, 56px) 48px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            borderRight: '1px solid var(--border-default)',
           }}
         >
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 'min(1vh, 10px)' }}>
               Assessment
             </p>
-            <h1 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 16 }}>
+            <h1 style={{ fontSize: 'clamp(20px, 2.5vw, 26px)', fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 'min(2vh, 16px)' }}>
               Software Engineering Assessment
             </h1>
-            <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginBottom: 28, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'clamp(12px, 1.2vw, 13.5px)', color: 'var(--text-secondary)', marginBottom: 'min(3vh, 28px)', lineHeight: 1.5 }}>
               Welcome, <strong style={{ color: 'var(--text-primary)' }}>{user?.displayName || user?.email}</strong>
             </p>
 
@@ -226,39 +226,40 @@ export default function Lobby() {
         {/* Right panel — instructions card */}
         <motion.div
           className="lobby-right"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, scale: 0.98, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
           style={{
             flex: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '32px 40px',
+            padding: 'min(4vh, 40px) min(4vw, 48px)',
+            overflowY: 'auto',
           }}
         >
-          <div className="surface" style={{ maxWidth: 580, width: '100%', overflow: 'hidden' }}>
+          <div className="glass" style={{ maxWidth: 640, width: '100%', overflow: 'hidden' }}>
 
             {/* Instructions */}
-            <div style={{ padding: '24px 28px' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 18 }}>
-                Instructions
+            <div style={{ padding: 'min(3vh, 32px) 36px' }}>
+              <h2 className="font-serif" style={{ fontSize: 'clamp(18px, 2vw, 22px)', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 'min(2vh, 20px)' }}>
+                Assessment Rules & Instructions
               </h2>
-              <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 'min(1.5vh, 16px)' }}>
                 {instructions.map((item, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', minWidth: 18, paddingTop: 3 }}>{i + 1}.</span>
-                    <span style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item}</span>
+                  <li key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                    <span className="font-serif" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', minWidth: 20, paddingTop: 2 }}>{i + 1}.</span>
+                    <span className="font-serif" style={{ fontSize: 'clamp(13px, 1.2vw, 15px)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item}</span>
                   </li>
                 ))}
               </ol>
             </div>
 
-            <div className="divider" />
+            <div className="divider" style={{ opacity: 0.5 }} />
 
             {/* Test format table */}
-            <div style={{ padding: '20px 28px' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: 14 }}>
+            <div style={{ padding: 'min(2.5vh, 24px) 36px' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: 'min(1.5vh, 14px)' }}>
                 Test Format
               </h3>
               <div style={{ borderRadius: 6, border: '1px solid var(--border-default)', overflow: 'hidden' }}>
@@ -284,9 +285,9 @@ export default function Lobby() {
             <div className="divider" />
 
             {/* CTA */}
-            <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={handleStart} disabled={starting} className="btn btn-accent" style={{ padding: '9px 28px', fontSize: 14 }}>
-                {starting ? <><Spinner /> Starting…</> : 'Continue'}
+            <div style={{ padding: 'min(2.5vh, 24px) 36px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={handleStart} disabled={starting} className="btn btn-accent" style={{ padding: '10px 32px', fontSize: 15 }}>
+                {starting ? <><Spinner /> Starting…</> : 'Start Assessment'}
               </button>
             </div>
           </div>

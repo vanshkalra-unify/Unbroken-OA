@@ -41,7 +41,7 @@ function SubmitModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.2 }}
-          className="surface"
+          className="glass"
           style={{ width: '100%', maxWidth: 400, padding: '24px 28px' }}
         >
           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
@@ -290,11 +290,11 @@ export default function Assessment() {
       </AnimatePresence>
 
       {/* Header */}
-      <header style={{
-        height: 52,
+      <header className="glass-panel" style={{
+        height: 60,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px',
-        backgroundColor: 'var(--bg-surface)',
+        padding: '0 24px',
+        backgroundColor: 'var(--glass-bg)',
         borderBottom: '1px solid var(--border-default)',
         position: 'sticky', top: 0, zIndex: 40, flexShrink: 0,
       }}>
@@ -460,47 +460,46 @@ export default function Assessment() {
                     <motion.label
                       key={i}
                       whileHover={{ x: 2 }}
-                      transition={{ duration: 0.12 }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
-                        padding: '12px 16px',
-                        borderRadius: 8,
+                        gap: 16,
+                        padding: '16px 20px',
+                        borderRadius: 12, /* highly rounded */
                         cursor: submitStatus !== 'idle' ? 'not-allowed' : 'pointer',
                         opacity: submitStatus !== 'idle' ? 0.7 : 1,
                         border: sel
-                          ? '1.5px solid var(--accent-blue)'
-                          : '1.5px solid var(--border-default)',
+                          ? '2px solid var(--text-primary)'
+                          : '1px solid var(--border-default)',
                         backgroundColor: sel
-                          ? 'var(--accent-blue-subtle)'
+                          ? 'var(--accent-subtle)'
                           : 'var(--bg-surface)',
                         transition: 'border-color 0.15s, background-color 0.15s',
                       }}
                     >
                       {/* Indicator */}
                       <div style={{
-                        width: 16, height: 16, flexShrink: 0,
-                        borderRadius: isMulti ? 3 : 99,
-                        border: sel ? '2px solid var(--accent-blue)' : '1.5px solid var(--border-strong)',
-                        backgroundColor: sel ? 'var(--accent-blue)' : 'transparent',
+                        width: 20, height: 20, flexShrink: 0,
+                        borderRadius: isMulti ? 4 : 99,
+                        border: sel ? '2px solid var(--text-primary)' : '1px solid var(--border-strong)',
+                        backgroundColor: sel ? 'var(--text-primary)' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'all 0.15s',
                       }}>
                         {sel && (
-                          <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                            {isMulti ? <path d="M2 6l3 3 5-5"/> : <circle cx="6" cy="6" r="2.5" fill="white" stroke="none"/>}
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--bg-base)" strokeWidth="2.5" strokeLinecap="round">
+                            {isMulti ? <path d="M2 6l3 3 5-5"/> : <circle cx="6" cy="6" r="2.5" fill="var(--bg-base)" stroke="none"/>}
                           </svg>
                         )}
                       </div>
 
                       {/* Letter */}
                       <span style={{
-                        width: 22, height: 22, borderRadius: 4,
+                        width: 26, height: 26, borderRadius: 99,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0, fontSize: 11, fontWeight: 700,
-                        backgroundColor: sel ? 'rgba(88,166,255,0.15)' : 'var(--bg-overlay)',
-                        color: sel ? 'var(--accent-blue)' : 'var(--text-muted)',
+                        flexShrink: 0, fontSize: 12, fontWeight: 700,
+                        backgroundColor: sel ? 'var(--text-primary)' : 'var(--bg-overlay)',
+                        color: sel ? 'var(--bg-base)' : 'var(--text-muted)',
                         transition: 'all 0.15s',
                       }}>
                         {String.fromCharCode(65 + i)}

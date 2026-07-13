@@ -54,27 +54,25 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-base)' }}>
+    <div className="bg-grid" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-base)' }}>
 
       {/* ── Left branding panel ── */}
       <div
-        className="login-left-panel"
+        className="login-left-panel glass-panel"
         style={{
-          width: 440,
+          width: 480,
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: '48px 52px',
-          backgroundColor: 'var(--bg-surface)',
-          borderRight: '1px solid var(--border-default)',
+          padding: 'min(5vh, 56px) min(4vw, 64px)',
         }}
       >
         <div>
           {/* Wordmark */}
-          <div style={{ marginBottom: 56 }}>
+          <div style={{ marginBottom: 'min(5vh, 56px)' }}>
             <span style={{
-              fontSize: 22,
+              fontSize: 'clamp(20px, 2vw, 22px)',
               fontWeight: 800,
               letterSpacing: '-0.04em',
               color: 'var(--text-primary)',
@@ -90,23 +88,23 @@ export default function Login() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
             <h1 style={{
-              fontSize: 32,
+              fontSize: 'clamp(26px, 3vw, 32px)',
               fontWeight: 800,
               lineHeight: 1.2,
               letterSpacing: '-0.03em',
               color: 'var(--text-primary)',
-              marginBottom: 16,
+              marginBottom: 'min(2vh, 16px)',
             }}>
               Assess your skills.<br />
               Prove your potential.
             </h1>
-            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', maxWidth: 300 }}>
+            <p style={{ fontSize: 'clamp(13px, 1.2vw, 14px)', lineHeight: 1.6, color: 'var(--text-secondary)', maxWidth: 300 }}>
               A secure, offline-ready assessment platform designed for developers. Your answers are always saved - even without a connection.
             </p>
           </motion.div>
 
           {/* Feature list */}
-          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ marginTop: 'min(4vh, 40px)', display: 'flex', flexDirection: 'column', gap: 'min(1.5vh, 16px)' }}>
             {[
               { icon: ShieldIcon, text: 'Proctored - tab switches are monitored' },
               { icon: WifiIcon, text: 'Offline-first - never lose your progress' },
@@ -139,18 +137,19 @@ export default function Login() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        padding: 32,
         position: 'relative',
       }}>
-        <div style={{ position: 'absolute', top: 20, right: 20 }}>
+        <div style={{ position: 'absolute', top: 24, right: 32 }}>
           <ThemeToggle />
         </div>
 
         <motion.div
-          style={{ width: '100%', maxWidth: 360 }}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="glass"
+          style={{ width: '100%', maxWidth: 420, padding: 'min(4vh, 40px)' }}
+          initial={{ opacity: 0, scale: 0.98, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Mobile wordmark — only visible when left panel is hidden */}
           <div className="login-mobile-wordmark" style={{ marginBottom: 24 }}>
