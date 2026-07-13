@@ -128,9 +128,14 @@ export default function Lobby() {
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28 }}>
             This assessment link does not exist or has expired. Please use the link provided by your recruiter or administrator.
           </p>
-          <button onClick={() => auth.signOut()} className="btn btn-ghost" style={{ fontSize: 13 }}>
-            Sign out
-          </button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button onClick={() => navigate('/oa/demo-test-id')} className="btn btn-secondary" style={{ fontSize: 13 }}>
+              Go Back
+            </button>
+            <button onClick={() => auth.signOut()} className="btn btn-ghost" style={{ fontSize: 13 }}>
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );

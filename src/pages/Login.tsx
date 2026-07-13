@@ -100,15 +100,15 @@ export default function Login() {
               Prove your potential.
             </h1>
             <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', maxWidth: 300 }}>
-              A secure, offline-ready assessment platform designed for developers. Your answers are always saved — even without a connection.
+              A secure, offline-ready assessment platform designed for developers. Your answers are always saved - even without a connection.
             </p>
           </motion.div>
 
           {/* Feature list */}
           <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              { icon: ShieldIcon, text: 'Proctored — tab switches are monitored' },
-              { icon: WifiIcon, text: 'Offline-first — never lose your progress' },
+              { icon: ShieldIcon, text: 'Proctored - tab switches are monitored' },
+              { icon: WifiIcon, text: 'Offline-first - never lose your progress' },
               { icon: ClockIcon, text: 'Server-synced timer, tamper-proof' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

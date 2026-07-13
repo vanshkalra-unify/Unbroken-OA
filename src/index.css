@@ -93,6 +93,10 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+button {
+  cursor: pointer;
+}
+
 .font-mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
