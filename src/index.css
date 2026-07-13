@@ -92,6 +92,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  zoom: 1.0;
 }
 
 body {
