@@ -201,10 +201,10 @@ export default function Lobby() {
           style={{
             width: 360,
             flexShrink: 0,
-            padding: 'min(5vh, 56px) 48px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            padding: 'min(5vh, 32px) 48px',
           }}
         >
           <div>
@@ -232,6 +232,7 @@ export default function Lobby() {
               Test duration: 2 minutes
             </div>
           </div>
+          
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             Powered by <strong style={{ color: 'var(--text-secondary)' }}>HackOff</strong>
           </p>
@@ -246,9 +247,12 @@ export default function Lobby() {
           style={{
             flex: 1,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: 'min(4vh, 40px) min(4vw, 48px)',
+            paddingTop: 'min(4.5vh, 32px)',
+            paddingBottom: 'min(3vh, 32px)',
+            paddingLeft: 'min(4vw, 48px)',
+            paddingRight: 'min(4vw, 48px)',
             overflowY: 'auto',
           }}
         >

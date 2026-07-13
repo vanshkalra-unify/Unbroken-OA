@@ -130,14 +130,16 @@ export default function Login() {
         </p>
       </div>
 
-      {/* ── Right auth panel ── */}
       <div style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 32,
+        justifyContent: 'flex-start',
+        paddingTop: 'calc(min(10vh, 112px) + 26px)',
+        paddingBottom: 32,
+        paddingLeft: 32,
+        paddingRight: 32,
         position: 'relative',
       }}>
         <div style={{ position: 'absolute', top: 24, right: 32 }}>
@@ -147,7 +149,7 @@ export default function Login() {
         <motion.div
           className="glass"
           style={{ width: '100%', maxWidth: 420, padding: 'min(4vh, 40px)' }}
-          initial={{ opacity: 0, scale: 0.98, y: 16 }}
+            initial={{ opacity: 0, scale: 0.98, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
