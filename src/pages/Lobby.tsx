@@ -31,7 +31,7 @@ export default function Lobby() {
         } else {
           // In dev/demo: auto-create the demo assessment doc so the demo link always works.
           // In production, remove this block — assessment docs must be pre-created by admins.
-          if (testId === 'demo-test-id') {
+          if (['demo-test-id', 'test-2', 'test-3'].includes(testId)) {
             await setDoc(assessmentRef, {
               title: 'Software Engineering Assessment',
               durationMinutes: 2,
