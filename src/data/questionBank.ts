@@ -4,7 +4,7 @@ export interface Question {
   id: string;
   type: QuestionType;
   text: string;
-  options: string[]; // for tf: ['True', 'False']
+  options: string[]; // for TF: ['True', 'False']
 }
 
 // Dummy question bank. In a real app, this would be fetched from Firestore.
