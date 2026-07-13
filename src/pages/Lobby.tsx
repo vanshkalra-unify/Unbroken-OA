@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 
-type LobbyStatus = 'loading' | 'invalid' | 'ready';
+// type LobbyStatus = 'loading' | 'invalid' | 'ready';
 
 export default function Lobby() {
   const { testId } = useParams();
