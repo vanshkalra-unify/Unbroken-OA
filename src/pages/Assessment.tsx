@@ -120,7 +120,11 @@ export default function Assessment() {
           if (savedIdx !== null) setCurrentIndex(savedIdx as number);
           setAttemptData({ startTime: { toDate: () => new Date() }, durationMinutes: 2 });
         }
-      } finally { setLoading(false); }
+      } finally {
+        const pending = await LocalStorage.getItem('pending_offline_submission') as { testId: string } | null;
+        if (pending && pending.testId === testId) setSubmitStatus('pending');
+        setLoading(false);
+      }
     };
     init();
   }, [testId, navigate]);
