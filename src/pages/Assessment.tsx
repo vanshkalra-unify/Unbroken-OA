@@ -159,6 +159,8 @@ export default function Assessment() {
 
   /* answer handler */
   const handleAnswer = (qId: string, opt: string, isMulti: boolean, clear = false) => {
+    if (submitStatus !== 'idle') return;
+    
     setAnswers(prev => {
       const cur = prev[qId];
       let next: string | string[];
@@ -465,7 +467,8 @@ export default function Assessment() {
                         gap: 12,
                         padding: '12px 16px',
                         borderRadius: 8,
-                        cursor: 'pointer',
+                        cursor: submitStatus !== 'idle' ? 'not-allowed' : 'pointer',
+                        opacity: submitStatus !== 'idle' ? 0.7 : 1,
                         border: sel
                           ? '1.5px solid var(--accent-blue)'
                           : '1.5px solid var(--border-default)',
@@ -516,6 +519,7 @@ export default function Assessment() {
                         name={`q-${q.id}`}
                         value={opt}
                         checked={sel}
+                        disabled={submitStatus !== 'idle'}
                         onChange={() => handleAnswer(q.id, opt, isMulti)}
                         style={{ display: 'none' }}
                       />
@@ -528,8 +532,11 @@ export default function Assessment() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
                 <button
                   onClick={() => handleAnswer(q.id, '', isMulti, true)}
+                  disabled={submitStatus !== 'idle'}
                   style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
+                    background: 'none', border: 'none', 
+                    cursor: submitStatus !== 'idle' ? 'not-allowed' : 'pointer',
+                    opacity: submitStatus !== 'idle' ? 0.5 : 1,
                     fontSize: 13, color: 'var(--text-muted)', padding: 0,
                     transition: 'color 0.15s',
                     fontFamily: 'inherit',
