@@ -101,8 +101,15 @@ export default function Assessment() {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.status === 'submitted') { navigate('/login'); return; }
+          if (data.status === 'submitted') { navigate(`/oa/${testId}`); return; }
           setAttemptData(data);
+          
+          // Save start time and duration so if they refresh offline, the timer continues from the correct time
+          if (data.startTime) {
+            LocalStorage.setItem('attempt_start_time', data.startTime.toDate().getTime());
+            LocalStorage.setItem('attempt_duration', data.durationMinutes);
+          }
+
           const localA = (await LocalStorage.getItem('answers')) as Record<string, string | string[]> || {};
           setAnswers({ ...(data.answers as Record<string, string | string[]>), ...localA });
           const cachedQ = await LocalStorage.getItem('current_questions');
@@ -114,15 +121,23 @@ export default function Assessment() {
         const cachedQ  = await LocalStorage.getItem('current_questions');
         const localA   = await LocalStorage.getItem('answers') || {};
         const savedIdx = await LocalStorage.getItem('current_index');
+        const savedStartTime = await LocalStorage.getItem('attempt_start_time') as number | null;
+        const savedDuration = await LocalStorage.getItem('attempt_duration') as number | null;
+
         if (cachedQ) {
           setQuestions(cachedQ as Question[]);
           setAnswers(localA as Record<string, string | string[]>);
           if (savedIdx !== null) setCurrentIndex(savedIdx as number);
-          setAttemptData({ startTime: { toDate: () => new Date() }, durationMinutes: 2 });
+          
+          // Use the real start time if available, otherwise fallback to now (though this shouldn't happen for a loaded test)
+          setAttemptData({ 
+            startTime: savedStartTime ? { toDate: () => new Date(savedStartTime) } : { toDate: () => new Date() }, 
+            durationMinutes: savedDuration || 2 
+          });
         }
       } finally {
-        const pending = await LocalStorage.getItem('pending_offline_submission') as { testId: string } | null;
-        if (pending && pending.testId === testId) setSubmitStatus('pending');
+        const pending = await LocalStorage.getItem('pending_offline_submission');
+        if (pending) setSubmitStatus('pending');
         setLoading(false);
       }
     };
@@ -156,10 +171,7 @@ export default function Assessment() {
     };
   }, [testId]);
 
-  /* auto-submit when back online */
-  useEffect(() => {
-    if (!isOffline && submitStatus === 'pending' && auth.currentUser && testId) handleFinalSubmit();
-  }, [isOffline, submitStatus]);
+
 
   /* answer handler */
   const handleAnswer = (qId: string, opt: string, isMulti: boolean, clear = false) => {
@@ -190,22 +202,20 @@ export default function Assessment() {
     setSubmitStatus('pending');
     setShowModal(false);
 
-    if (isOffline) {
-      // Include userId so App.tsx can securely validate the recovery belongs to the right user
-      LocalStorage.setItem('pending_offline_submission', { testId, answers, userId: auth.currentUser.uid });
-      toast.info('You are offline. Answers are saved. The test will submit automatically once your connection is restored.', { duration: 10000 });
-      return;
-    }
-
     try {
       const ref = doc(db, 'attempts', `${auth.currentUser.uid}_${testId}`);
-      await updateDoc(ref, { status: 'submitted', answers, submittedAt: new Date() });
+      if (isOffline) {
+        LocalStorage.setItem('pending_offline_submission', true);
+        toast.info('You are offline. The test is locked and will submit automatically once your connection is restored.', { duration: 10000 });
+      }
+      
+      await updateDoc(ref, { status: 'submitted', submittedAt: new Date() });
       setSubmitStatus('submitted');
       await LocalStorage.clear();
       toast.success('Assessment submitted successfully!');
-      navigate('/login');
+      navigate(`/oa/${testId}`);
     } catch {
-      toast.error('Submission failed. Will retry when online.');
+      toast.error('Submission failed. Check your connection or contact support.');
     }
   };
 

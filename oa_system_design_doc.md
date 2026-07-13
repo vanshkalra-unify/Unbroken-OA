@@ -9,11 +9,11 @@ This document stores the design decisions, architectural reasoning, and develope
 ## 1. Core Architecture Decisions
 
 ### Storage & Offline Capabilities
-**Decision**: Hybrid approach — **Firebase Offline Persistence** (IndexedDB via Firestore SDK) + **LocalForage** for UI state (currentIndex, draft answers, pending submission flag).
+**Decision**: Hybrid approach — **Firebase Offline Persistence** (IndexedDB via Firestore SDK) + **LocalForage** for UI state (`current_questions`, `current_index`, draft answers).
 
 - *Why not LocalStorage?* 5MB limit, synchronous/blocking, strings only.
 - *Why Firebase Offline Persistence?* Automatically queues writes; syncs on reconnect without custom logic.
-- *Why LocalForage?* Tracks exact UI state (timer offset, last question, pending submission) for hard-refresh / tab-close recovery. Stored in an IndexedDB database named `OnlineAssessmentApp`, object store `oa_state`.
+- *Why LocalForage?* Tracks exact UI state for hard-refresh / tab-close recovery. Stored in an IndexedDB database named `OnlineAssessmentApp`, object store `oa_state`.
 
 **Keys stored in `oa_state`**:
 | Key | Value | Cleared |
@@ -21,7 +21,9 @@ This document stores the design decisions, architectural reasoning, and develope
 | `current_questions` | Array of question objects for the session | On submit |
 | `current_index` | Integer, the last viewed question index | On submit |
 | `answers` | `Record<questionId, string \| string[]>` | On submit |
-| `pending_offline_submission` | `{ testId, userId, answers }` | On recovery sync |
+| `attempt_start_time` | Integer timestamp (ms) | On submit |
+| `attempt_duration` | Integer (minutes) | On submit |
+| `pending_offline_submission` | Boolean `true` | On recovery sync / submit |
 
 ### Syncing Strategy
 Sync on **each answer selection** (not on submit). Firebase SDK queues writes when offline and flushes on reconnection — no manual batching required.
@@ -36,21 +38,43 @@ Sync on **each answer selection** (not on submit). Firebase SDK queues writes wh
 **Decision**: Case 2 — **Direct Resume** (no re-login).
 Firebase Auth persists the session natively. On reopen, the app reads `currentIndex` from LocalForage and drops the user exactly back on the last question they were viewing. The server-side timer continues ticking naturally.
 
-### Edge Case: Offline Submission Recovery
-When a user submits offline, a `pending_offline_submission` flag (containing `testId`, `userId`, and `answers`) is saved to LocalForage. On next app launch (online), `App.tsx` runs a recovery check on startup. If found and the `userId` matches the currently logged-in user, it pushes the final answers to Firestore and shows a styled recovery message. The check includes user validation to prevent pushing answers to the wrong Firestore document if a different user logs in on the same shared device.
+### Architecture Shift: Strict Server-Enforced Time Limits
+Initially, the app used an **Offline-First (Trust the Payload)** approach where manual payloads were constructed and synced via `App.tsx` upon reconnection. This was completely replaced with a **Strict Server-Enforced Architecture**.
 
-### Security: Post-Submission Lock (Offline Mode Exploit Fix)
-**Problem**: After submitting offline (timer expired or manual submit), the UI remained interactive. The Firebase SDK would queue those post-submission answer updates and flush them to Firestore when the connection returned, allowing malicious users to modify answers after time had run out.
+**Why?** Trusting the client payload allows highly sophisticated users to manipulate their local clock and submit late answers. By relying purely on Firebase's native offline queue and strict server-side rules, we eliminate this attack vector entirely while still retaining graceful offline degradation.
 
-**Fix**: An early return was added inside `handleAnswer` in `Assessment.tsx` to reject any answer update if `submitStatus !== 'idle'`. All option inputs, checkboxes, and the "Clear selection" button are also `disabled` and visually greyed out (`opacity: 0.7, cursor: not-allowed`) once the test is locked.
+**How it works (The Security Rule):**
+In production, Firestore rules must enforce that `answers` cannot be updated past the time limit, but `status` CAN be updated to `'submitted'` late.
+```javascript
+match /attempts/{attemptId} {
+  allow update: if request.auth.uid == resource.data.userId &&
+    (
+      // CONDITION 1: Within time limit -> can update answers & status
+      request.time <= resource.data.startTime + duration.value(resource.data.durationMinutes + 1, 'm')
+      ||
+      // CONDITION 2: Past time limit -> can ONLY update status to 'submitted'
+      (
+        request.resource.data.status == 'submitted' &&
+        request.resource.data.answers == resource.data.answers 
+      )
+    );
+}
+```
 
-### Malicious Cheating Analysis (Offline Mode Exploits)
-1. **Time Freezing**: User goes offline, takes hours to answer, comes back online.
-   - *Mitigation 1 — Auto-Submit on Timer Expiry*: **Decision**: The `Timer` component in `Timer.tsx` accepts an `onExpire` callback prop. When `timeLeft` reaches `0` in its `setInterval` loop (`rem <= 0`), it fires `onExpire()` which is wired to `handleFinalSubmit()` in `Assessment.tsx`. This means the timer expiry **automatically triggers the full submission flow** — the user has no choice. If they are online, it submits to Firestore immediately. If they are offline, it saves a `pending_offline_submission` to LocalForage and transitions `submitStatus` to `'pending'`, which locks the entire UI down.
-   - *Mitigation 2 — Server-Side Timestamp Validation*: Even if a user somehow bypasses the client-side auto-submit, the `submittedAt` server timestamp recorded by Firestore is compared against `startTime + durationMinutes` by Firestore Security Rules. Late submissions are rejected server-side.
-   - *How the Timer works*: On mount, `Timer.tsx` computes `endTime = startTime + durationMinutes * 60_000`. Every 1000ms, it recalculates `timeLeft = max(0, floor((endTime - Date.now()) / 1000))`. Using `Date.now()` (the real wall clock) instead of a simple countdown counter means the timer is **tamper-resistant** — users cannot fake elapsed time by pausing JavaScript execution or manipulating the system clock mid-session.
-2. **Post-Submission Answer Modification**: User modifies answers after offline timer expiry. → *Mitigation*: `handleAnswer` is gated by `submitStatus`. See the Post-Submission Lock section above.
-3. **Clearing Cache to wipe tab violations**: User clears IndexedDB to remove `tabViolations`. → *Mitigation*: Wiping IndexedDB also erases their cached answers and `pending_offline_submission` flag, destroying their own progress.
+**What happens if a user is offline when the timer ends?**
+1. User loses internet at 15m. Clicks Option B. (Queued by Firebase SDK).
+2. Timer expires at 30m. App triggers auto-submit. (Queued by Firebase SDK).
+3. User regains internet at 35m. Firebase SDK flushes the queue.
+4. The server evaluates the rules at 35m.
+5. The offline answer update (Option B) is **REJECTED** because it violates Condition 1 and modifies `answers` (violating Condition 2).
+6. The auto-submit update (`status: 'submitted'`) is **ACCEPTED** because it satisfies Condition 2.
+7. **Result**: The test is successfully submitted using ONLY the answers they selected when they were last online. Late offline clicks are silently dropped.
+
+### Hardened Offline UI Behaviors
+1. **Post-Submission Lock**: Once the timer ends offline, `submitStatus` becomes `'pending'`. All options are visually disabled (`opacity: 0.7`) to prevent users from queueing further useless answer updates.
+2. **Refresh Bypass Prevention**: If a user refreshes the page while offline and past the time limit, Firebase's local cache optimisticly returns `status === 'submitted'`. The app instantly boots them back to the Lobby page instead of letting them re-enter the test.
+3. **Time Freezing & Tampering**: `Timer.tsx` calculates remaining time using `Date.now()` against a fixed `endTime` (`startTime + durationMinutes`), making it resistant to JavaScript pausing. 
+4. **Post-Submission Redirect**: After the assessment is submitted (either manually or automatically at time over), the user is gracefully redirected to the Lobby (`/oa/<testId>`) rather than being kicked back to the generic `/login` screen. 
 
 ---
 
@@ -114,9 +138,6 @@ Option rows use highly rounded corners (`borderRadius: 12`), larger padding (`16
 1. **Inline `document.head.appendChild` in `Login.tsx`**: This ran as a module-level side effect on every import, potentially creating duplicate `<style>` tags. **Fix**: Moved responsive CSS into `index.css` media queries.
 2. **App loading spinner used old Tailwind class names** that no longer exist after CSS token migration. **Fix**: Replaced with inline-styled spinner matching the new design system.
 3. **Double-submission**: The submit button is disabled immediately when `submitStatus` changes from `'idle'`, preventing double-clicks. No change needed.
-4. **Firebase Auth session persistence on recovery**: The `pending_offline_submission` object in LocalForage contained `testId` but not `userId`. If a different user logged in on the same device, the recovery would push to the wrong user's Firestore document. **Fix**: The recovery check in `App.tsx` now also validates that `user.uid` matches the `userId` stored alongside the pending submission.
-5. **Firestore Security Rules**: `submittedAt` timestamp should be validated server-side to prevent late offline submissions. (Documented here; Firestore rules to be updated in production.)
-6. **Post-submission answer updates in offline mode**: After the timer expired or Submit was clicked offline, the UI remained interactive. Firebase SDK would queue those updates and flush them on reconnection. **Fix**: `handleAnswer` now has an early return if `submitStatus !== 'idle'`. All inputs are disabled and greyed out. See Section 1 for full analysis.
 
 ---
 
