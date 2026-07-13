@@ -45,8 +45,11 @@ When a user submits offline, a `pending_offline_submission` flag (containing `te
 **Fix**: An early return was added inside `handleAnswer` in `Assessment.tsx` to reject any answer update if `submitStatus !== 'idle'`. All option inputs, checkboxes, and the "Clear selection" button are also `disabled` and visually greyed out (`opacity: 0.7, cursor: not-allowed`) once the test is locked.
 
 ### Malicious Cheating Analysis (Offline Mode Exploits)
-1. **Time Freezing**: User goes offline, takes hours to answer, comes back online. → *Mitigation*: The `submittedAt` server timestamp is compared against `startTime + durationMinutes` by Firestore Security Rules. Late submissions are rejected.
-2. **Post-Submission Answer Modification**: User modifies answers after offline timer expiry. → *Mitigation*: `handleAnswer` is gated by `submitStatus`. See above.
+1. **Time Freezing**: User goes offline, takes hours to answer, comes back online.
+   - *Mitigation 1 — Auto-Submit on Timer Expiry*: **Decision**: The `Timer` component in `Timer.tsx` accepts an `onExpire` callback prop. When `timeLeft` reaches `0` in its `setInterval` loop (`rem <= 0`), it fires `onExpire()` which is wired to `handleFinalSubmit()` in `Assessment.tsx`. This means the timer expiry **automatically triggers the full submission flow** — the user has no choice. If they are online, it submits to Firestore immediately. If they are offline, it saves a `pending_offline_submission` to LocalForage and transitions `submitStatus` to `'pending'`, which locks the entire UI down.
+   - *Mitigation 2 — Server-Side Timestamp Validation*: Even if a user somehow bypasses the client-side auto-submit, the `submittedAt` server timestamp recorded by Firestore is compared against `startTime + durationMinutes` by Firestore Security Rules. Late submissions are rejected server-side.
+   - *How the Timer works*: On mount, `Timer.tsx` computes `endTime = startTime + durationMinutes * 60_000`. Every 1000ms, it recalculates `timeLeft = max(0, floor((endTime - Date.now()) / 1000))`. Using `Date.now()` (the real wall clock) instead of a simple countdown counter means the timer is **tamper-resistant** — users cannot fake elapsed time by pausing JavaScript execution or manipulating the system clock mid-session.
+2. **Post-Submission Answer Modification**: User modifies answers after offline timer expiry. → *Mitigation*: `handleAnswer` is gated by `submitStatus`. See the Post-Submission Lock section above.
 3. **Clearing Cache to wipe tab violations**: User clears IndexedDB to remove `tabViolations`. → *Mitigation*: Wiping IndexedDB also erases their cached answers and `pending_offline_submission` flag, destroying their own progress.
 
 ---
@@ -79,10 +82,15 @@ The test link is then: `hackoff.vercel.app/oa/<document-id>`.
 
 ### Theme
 - **Brand name**: HackOff
-- **Dark mode palette**: Deep navy/GitHub-style (`#0d1117` base, `#161b22` surface)
-- **Accent color**: Purple (`#8b5cf6` in dark, `#7c3aed` in light) — changed from green to differentiate the brand while remaining professional.
+- **Palette**: Vercel-inspired **Interstellar Black & White** — pure black base (`#000000`), near-black surface (`#0a0a0a`), elevated greys (`#111111`, `#171717`). This replaces the earlier navy/GitHub palette.
+- **Accent**: Inverted high-contrast system — **white (`#ffffff`) on dark mode**, **black (`#000000`) on light mode** — with `--accent-fg` being the opposite. This gives buttons and selected states a crisp, editorial feel without relying on color hue.
+- **Text**: `#ededed` (primary), `#a1a1aa` (secondary), `#71717a` (muted) — warm near-whites on deep black.
+- **Status Colors**: Blue (`#3b82f6`), orange (`#f59e0b`), red (`#ef4444`), green (`#10b981`) — used only for semantic UI states (timer warning, errors).
+- **Borders**: Extremely subtle — `#1f1f22` (subtle), `#333333` (default), `#444444` (strong).
 - **Typography**: Inter (Google Fonts) for UI, JetBrains Mono for the timer.
-- **Glassmorphism**: `glass` and `glass-panel` CSS utility classes used in the Assessment header and Submit modal for a premium frosted-glass appearance.
+- **Glassmorphism**: `glass` and `glass-panel` CSS utility classes using `rgba(10,10,10,0.6)` with `backdrop-filter: blur()` for the Assessment header and Submit modal.
+- **Background Utility**: `.bg-grid` class adds a subtle dot-grid pattern (inspired by Vercel landing pages) using `linear-gradient` on `--border-subtle`.
+- **Buttons**: Pill-shaped (`border-radius: 9999px`) throughout for a modern, Vercel-native aesthetic.
 
 ### Assessment Option Styling
 Option rows use highly rounded corners (`borderRadius: 12`), larger padding (`16px 20px`), and a cleaner monochromatic selection state (white/`--text-primary` fill instead of blue accent) to match the brand aesthetic.
