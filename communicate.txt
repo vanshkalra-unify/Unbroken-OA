@@ -1,4 +1,0 @@
-src/App.tsx(6,16): error TS6133: 'db' is declared but its value is never read.
-src/App.tsx(8,1): error TS6133: 'LocalStorage' is declared but its value is never read.
-src/App.tsx(9,1): error TS6192: All imports in import declaration are unused.
-Error: Command "npm run build" exited with 2
